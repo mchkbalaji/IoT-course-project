@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // 
+    // Collection: alerts
+    // Document ID: auto-generated
+    // Fields:
+    //   - device_id: string (required)
+    //   - room: string (required)
+    //   - alert_type: string (required)
+    //   - confidence: number (required, 0-100)
+    //   - timestamp: string (required, ISO 8601)
+    //   - severity: string (required, enum: low, medium, high)
+    //
+    // Collection: devices
+    // Document ID: device_id
+    // Fields:
+    //   - device_id: string (required)
+    //   - room: string (required)
+    //   - status: string (required, enum: active, offline)
+    //   - last_seen: string (required, ISO 8601)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "balajimchk@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidAlert(data) {
+      return data.keys().hasAll(['device_id', 'room', 'alert_type', 'confidence', 'timestamp', 'severity']) &&
+             data.device_id is string &&
+             data.room is string &&
+             data.alert_type is string &&
+             data.confidence is number && data.confidence >= 0 && data.confidence <= 100 &&
+             (data.timestamp is string || data.timestamp is timestamp) &&
+             data.severity in ['low', 'medium', 'high'];
+    }
+
+    function isValidDevice(data) {
+      return data.keys().hasAll(['device_id', 'room', 'status', 'last_seen']) &&
+             data.device_id is string &&
+             data.room is string &&
+             data.status in ['active', 'offline'] &&
+             (data.last_seen is string || data.last_seen is timestamp);
+    }
+
+    // Rules
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      // In a real IoT scenario, devices would write via a secure backend or restricted API key.
+      // For this prototype, we allow authenticated users to simulate alerts.
+      allow create: if isAuthenticated() && isValidAlert(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /devices/{deviceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && isValidDevice(request.resource.data));
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId || isAdmin();
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "SonicSentry AI",
+  "description": "IoT-based real-time sound monitoring and threat detection dashboard.",
+  "requestFramePermissions": []
+}
