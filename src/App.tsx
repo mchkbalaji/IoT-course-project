@@ -174,7 +174,7 @@ const SummaryCard = ({ title, value, subtitle, icon: Icon, colorClass, trend }: 
 
 // --- Views ---
 
-const DashboardView = ({ alerts }: { alerts: Alert[] }) => {
+const DashboardView = ({ alerts, devices }: { alerts: Alert[], devices: Device[] }) => {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -216,10 +216,10 @@ const DashboardView = ({ alerts }: { alerts: Alert[] }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <SummaryCard 
           title="Network Nodes" 
-          value="04" 
+          value={String(devices.length).padStart(2, '0')} 
           icon={Router} 
           colorClass={{ bg: 'bg-secondary/10', text: 'text-secondary', border: 'border-secondary/20' }}
-          trend="4/4 Active"
+          trend={`${devices.filter(d => d.status === 'active').length}/${devices.length} Active`}
         />
         <SummaryCard 
           title="Alerts (Live)" 
@@ -640,7 +640,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <DashboardView alerts={alerts} />
+              <DashboardView alerts={alerts} devices={devices} />
             </motion.div>
           ) : (
             <motion.div 
